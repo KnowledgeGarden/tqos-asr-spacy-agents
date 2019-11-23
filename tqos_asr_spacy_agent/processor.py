@@ -71,11 +71,10 @@ class SpacyProcessor(object):
     def process_para(self, paraj, tok_processor=None, span_processor=None):
         tok_processor = tok_processor or SpacyProcessor.process_token
         span_processor = span_processor or SpacyProcessor.process_span
-        doc_id, para_id, para_text = paraj['docId'], paraj['paraId'], paraj['text']
+        para_info, para_text = paraj['para_info'], paraj['text']
         info = self.nlp(para_text)
         result = {
-            'doc_id': doc_id,
-            'para_id': para_id,
+            'para_info': para_info,
             'time': datetime.now().isoformat(),
             'analyzer': {
                 'name': self.nlp.meta['name'],

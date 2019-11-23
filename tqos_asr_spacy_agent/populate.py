@@ -42,7 +42,13 @@ if __name__ == '__main__':
     # maybe try with async?
     with topic.get_sync_producer(compression=compression) as producer:
         i=len(paragraphs)
-        data = data = {"docId": args.docid, "paraId": i, "text": "We have found methane in artic ocean permafrost"}
+        data = {
+            "para_info": {
+                "doc_id": args.docid,
+                "para_id": i
+            },
+            "text": "We have found methane in artic ocean permafrost"
+        }
         producer.produce(json.dumps(data).encode('utf-8'),
                 partition_key=b"%s_%d" % (args.docid.encode('ascii'), i))
  #        for i, s in enumerate(paragraphs):

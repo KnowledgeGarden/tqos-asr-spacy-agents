@@ -1,7 +1,7 @@
 import simplejson as json
 from pykafka import KafkaClient
 from pykafka.common import CompressionType, OffsetType
-from processor import SpacyProcessor
+from .processor import SpacyProcessor
 
 
 class KafkaSpacyProcessor(SpacyProcessor):
@@ -22,11 +22,12 @@ class KafkaSpacyProcessor(SpacyProcessor):
         self.consumer.start()
         for msg in self.consumer:
             para = json.loads(msg.value.decode('utf-8'))
+            para_info = para['para_info']
             print("read", para)
             result = self.process_para(para)
             print("writing", result)
             self.producer.produce(json.dumps(result).encode('utf-8'),
-                partition_key=("%s_%s_%s" % (para['docId'], para['paraId'], self.model_name)).encode('ascii'))
+                partition_key=("%s_%s_%s" % (para_info['doc_id'], para_info['para_id'], self.model_name)).encode('ascii'))
             
 
 
