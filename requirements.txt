@@ -1,4 +1,4 @@
 pykafka >= 2.8
-spacy >= 2.1
+spacy >= 2.2
 pyYAML >= 5
 simplejson >= 3

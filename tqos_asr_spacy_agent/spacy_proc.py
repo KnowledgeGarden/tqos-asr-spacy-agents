@@ -10,7 +10,9 @@ if debug:
 
 class SpacyProcessor(object):
 
-    def __init__(self, model_name):
+    def __init__(self, model_name, tok_processor=None, span_processor=None):
+        self.tok_processor = tok_processor or SpacyProcessor.process_token
+        self.span_processor = span_processor or SpacyProcessor.process_span
         self.model_name = model_name
         self.nlp = spacy.load(model_name)
 
@@ -68,23 +70,19 @@ class SpacyProcessor(object):
             result['vector'] = [float(n) for n in tok.vector]
         return result
 
-    def process_para(self, paraj, tok_processor=None, span_processor=None):
-        tok_processor = tok_processor or SpacyProcessor.process_token
-        span_processor = span_processor or SpacyProcessor.process_span
-        para_info, para_text = paraj['para_info'], paraj['text']
+    def process_para(self, para_text):
         info = self.nlp(para_text)
         result = {
-            'para_info': para_info,
             'time': datetime.now().isoformat(),
             'analyzer': {
                 'name': self.nlp.meta['name'],
                 'version': self.nlp.meta['version'],
                 'lang': self.nlp.meta['lang'],
             },
-            'tok_info': [tok_processor(tok) for tok in info],
+            'tok_info': [self.tok_processor(tok) for tok in info],
         }
         try:
-            result['entities'] = [span_processor(s) for s in info.ents]
+            result['entities'] = [self.span_processor(s) for s in info.ents]
         except:
             if debug:
                 pdb.post_mortem()
@@ -94,7 +92,7 @@ class SpacyProcessor(object):
             if debug:
                 pdb.post_mortem()
         try:
-            result['noun_chunks'] = [span_processor(s) for s in info.noun_chunks]
+            result['noun_chunks'] = [self.span_processor(s) for s in info.noun_chunks]
         except:
             if debug:
                 pdb.post_mortem()
