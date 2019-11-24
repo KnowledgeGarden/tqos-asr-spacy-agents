@@ -20,14 +20,14 @@ class FileReader(object):
                     content = content0
                     doc_info.update(doc_info0)
         pos = 0
-        for num, sentence in enumerate(content.split('\n')):
-            if sentence.strip():
+        for num, para_text in enumerate(content.split('\n')):
+            if para_text.strip():
                 para_info = {
                     'para_id': num,
                     'para_offset': pos
                 }
-                self.writer.process_para(sentence.strip(), para_info)
-            pos += len(sentence) + 1
+                self.writer.process_para(para_text.strip(), para_info)
+            pos += len(para_text) + 1
         self.writer.end()
 
 
@@ -39,8 +39,8 @@ class FileWriter(Writer):
         super(FileWriter, self).start(doc_info, fname)
         self.analysis = []
 
-    def process_para(self, sentence, para_info):
-        data = self.processor.process_para(sentence)
+    def process_para(self, para_text, para_info):
+        data = self.processor.process_para(para_text)
         data['para_info'] = para_info
         self.analysis.append(data)
 

@@ -15,12 +15,15 @@ class KafkaParaWriter(Writer):
     def make_producer(self, topic, compression):
         return topic.get_sync_producer(compression=compression)
 
-    def process_para(self, sentence, para_info):        
+    def end(self):
+        self.producer.stop()
+
+    def process_para(self, para_text, para_info):
         # maybe try with async?
         para_info.update(self.doc_info)
         data = {
             "para_info": para_info,
-            "text": sentence
+            "text": para_text
         }
         self.write(data, self.get_key(para_info))
 
@@ -40,7 +43,7 @@ class KafkaAnalysisWriter(KafkaParaWriter):
     def get_key(self, para_info):
         return super(KafkaAnalysisWriter, self).get_key(para_info) + "_" + self.processor.model_name
 
-    def process_para(self, sentence, para_info):
+    def process_para(self, para_text, para_info):
         data = self.processor.process_para(para_text)
         para_info.update(self.doc_info)
         data['para_info'] = para_info
@@ -50,9 +53,9 @@ class KafkaAnalysisWriter(KafkaParaWriter):
 
 class KafkaProcessor(KafkaAnalysisWriter):
     def __init__(self, processor, source_topic, dest_topic, zookeeper=None, kafka=None, compression=None):
-        self.processor = processor
-        super(KafkaProcessor, self).__init__(dest_topic, zookeeper, kafka, compression)
-        source_topic = client.topics[source_topic]
+        super(KafkaProcessor, self).__init__(processor, dest_topic, zookeeper, kafka, compression)
+        source_topic = self.client.topics[source_topic]
+        self.doc_info = {}
         self.consumer = source_topic.get_simple_consumer(
             "spacy_"+processor.model_name,
             auto_commit_enable=True,
@@ -61,10 +64,15 @@ class KafkaProcessor(KafkaAnalysisWriter):
     def make_producer(self, topic, compression):
         return topic.get_producer(compression=compression)
 
+    def end(self):
+        super(KafkaProcessor, self).end()
+        self.consumer.stop()
+
     def run(self):
         self.producer.start()
         self.consumer.start()
         for msg in self.consumer:
-            para = json.loads(msg.value.decode('utf-8'))
-            para_info, para_text = para['para_info'], para['para_text']
-            self.processor.process_para(para_text, para_info)
+            print(msg)
+            data = json.loads(msg.value.decode('utf-8'))
+            para_info, para_text = data['para_info'], data['text']
+            self.process_para(para_text, para_info)

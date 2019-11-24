@@ -64,7 +64,7 @@ else:
         from .kafka_handlers import KafkaParaWriter
         writer = KafkaParaWriter(args.dest_topic, args.zookeeper, args.kafka, args.compression)
     elif args.action == 'pop_analysis':
-        from .kafka_handlers import KafkaProcWriter
+        from .kafka_handlers import KafkaAnalysisWriter
         writer = KafkaAnalysisWriter(processor, args.dest_topic, args.zookeeper, args.kafka, args.compression)
     from .file_handlers import FileReader
     reader = FileReader(writer)
