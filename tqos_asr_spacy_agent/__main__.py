@@ -15,10 +15,8 @@ for p in (parser_populate, parser_pop_analysis, parser_daemon):
                         default='NONE',
                         help='compression method (GZIP, SNAPPY, LZ4, NONE)')
     p.add_argument('--kafka', '-k', type=str,
-                        default='127.0.0.1:9092',
                         help='kafka host address and port')
     p.add_argument('--zookeeper', '-z', type=str,
-                        default='127.0.0.1:2181',
                         help='zookeeper host address and port')
 
 parser_daemon.add_argument('--source_topic', '-s', type=str,
@@ -48,6 +46,10 @@ args = parser.parse_args()
 if args.action != 'populate':
     from .spacy_proc import SpacyProcessor
     processor = SpacyProcessor(args.model_name)
+if args.action != 'process':
+    if not (args.kafka or args.zookeeper):
+        args.kafka = '127.0.0.1:9092'
+        args.zookeeper = '127.0.0.1:2181'
 if args.action == 'daemon':
     from .kafka_handlers import KafkaProcessor
     proc = KafkaProcessor(processor, args.source_topic, args.dest_topic, args.zookeeper, args.kafka, args.compression)
