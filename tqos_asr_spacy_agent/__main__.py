@@ -36,7 +36,7 @@ for p in (parser_pop_analysis, parser_daemon, parser_process):
                     default='en_core_sci_lg',
                     help='Name of spacy model to use for processing')
 for p in (parser_populate, parser_pop_analysis, parser_process):
-    p.add_argument('--docid', '-d', type=str,
+    p.add_argument('--doc_id', '-d', type=str,
                         default=None,
                         help='document id')
     p.add_argument('--doc_url', '-u', type=str,
@@ -69,4 +69,4 @@ else:
     from .file_handlers import FileReader
     reader = FileReader(writer)
     for fname in args.files:
-        reader.process(fname, doc_url=args.doc_url, docid=args.docid or fname)
+        reader.process(fname, doc_url=args.doc_url, doc_id=args.doc_id or fname)

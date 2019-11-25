@@ -28,7 +28,7 @@ class KafkaParaWriter(Writer):
         self.write(data, self.get_key(para_info))
 
     def get_key(self, para_info):
-        return "%s_%s" % (para_info['docid'], str(para_info['para_id']))
+        return "%s_%s" % (para_info['doc_id'], str(para_info['para_id']))
 
     def write(self, data, key):
         self.producer.produce(json.dumps(data).encode('utf-8'), key.encode('ascii'))
