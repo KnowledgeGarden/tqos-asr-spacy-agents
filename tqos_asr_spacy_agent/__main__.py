@@ -22,6 +22,8 @@ for p in (parser_populate, parser_pop_analysis, parser_daemon):
 parser_daemon.add_argument('--source_topic', '-s', type=str,
                         default='paragraphs',
                         help='kafka topic from where to read paragraphs')
+parser_daemon.add_argument('--hypothesis', action='store_true',
+                           help="analyze kafka message as hypothesis json")
 parser_populate.add_argument('--dest_topic', '-t', type=str,
                         default='paragraphs',
                         help='kafka topic from where to write paragraphs')
@@ -42,6 +44,7 @@ for p in (parser_populate, parser_pop_analysis, parser_process):
                         help='document url')
     p.add_argument('files', nargs='+', help='input file names')
 
+
 args = parser.parse_args()
 if args.action != 'populate':
     from .spacy_proc import SpacyProcessor
@@ -51,8 +54,11 @@ if args.action != 'process':
         args.kafka = '127.0.0.1:9092'
         args.zookeeper = '127.0.0.1:2181'
 if args.action == 'daemon':
-    from .kafka_handlers import KafkaProcessor
-    proc = KafkaProcessor(processor, args.source_topic, args.dest_topic, args.zookeeper, args.kafka, args.compression)
+    if args.hypothesis:
+        from .kafka_handlers import HypothesisProcessor as Processor
+    else:
+        from .kafka_handlers import KafkaProcessor as Processor
+    proc = Processor(processor, args.source_topic, args.dest_topic, args.zookeeper, args.kafka, args.compression)
     proc.run()
     exit(0)
 else:

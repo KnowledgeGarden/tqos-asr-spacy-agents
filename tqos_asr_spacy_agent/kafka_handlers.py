@@ -68,11 +68,24 @@ class KafkaProcessor(KafkaAnalysisWriter):
         super(KafkaProcessor, self).end()
         self.consumer.stop()
 
+
     def run(self):
         self.producer.start()
         self.consumer.start()
         for msg in self.consumer:
             print(msg)
             data = json.loads(msg.value.decode('utf-8'))
-            para_info, para_text = data['para_info'], data['text']
-            self.process_para(para_text, para_info)
+            self.process(data)
+
+    def process(self, data):
+        para_info, para_text = data['para_info'], data['text']
+        self.process_para(para_text, para_info)
+
+
+class HypothesisProcessor(KafkaProcessor):
+    def process(self, data):
+        id = data['id']
+        for k in ('annotation', "text"):
+            para = data.get(k, None)
+            if para:
+                self.process_para(annotation, {"doc_id": "hyp_" + id, "para_id": k, "hyp": data})
