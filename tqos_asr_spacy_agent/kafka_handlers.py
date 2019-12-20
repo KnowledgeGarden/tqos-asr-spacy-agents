@@ -88,4 +88,4 @@ class HypothesisProcessor(KafkaProcessor):
         for k in ('annotation', "text"):
             para = data.get(k, None)
             if para:
-                self.process_para(annotation, {"doc_id": "hyp_" + id, "para_id": k, "hyp": data})
+                self.process_para(para, {"doc_id": "hyp_" + id, "para_id": k, "hyp": data})
