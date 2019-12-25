@@ -5,8 +5,7 @@ config = ConfigParser()
 config.read('join_config.ini')
 assert 'join' in config
 params = config['join']
-target_models = set(params['models'].split(','))
-
+target_models = set([x.strip() for x in params['models'].split(',')])
 
 app = faust.App(
     'spacy_join',

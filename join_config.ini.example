@@ -2,6 +2,6 @@
 source_topic = spacy
 dest_topic = spacy_join
 broker = kafka://localhost:9092
-models = core_sci_lg,en_ner_bionlp13cg_md
+models = core_sci_lg, ner_bionlp13cg_md
 store = rocksdb://
 aggregate_table = spacy_join_t
