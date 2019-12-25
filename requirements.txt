@@ -3,3 +3,4 @@ spacy >= 2.2
 scispacy >= 0.2
 pyYAML >= 5
 simplejson >= 3
+faust[rocksdb]
