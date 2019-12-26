@@ -7,5 +7,5 @@ class Writer(object):
     def end(self):
         pass
 
-    def process_para(self, sentence, para_info):        
+    def process_para(self, sentence, para_info):
         pass

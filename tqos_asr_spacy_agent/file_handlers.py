@@ -9,6 +9,7 @@ from . import Writer
 class FileReader(object):
     def __init__(self, writer):
         self.writer = writer
+
     def process(self, fname, **doc_info):
         self.writer.start(doc_info, fname)
         with open(fname) as f:

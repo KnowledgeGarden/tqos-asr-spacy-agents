@@ -1,4 +1,3 @@
-import scispacy
 import spacy
 from datetime import datetime
 
@@ -7,6 +6,7 @@ debug = False
 
 if debug:
     import pdb
+
 
 class SpacyProcessor(object):
 
@@ -83,17 +83,22 @@ class SpacyProcessor(object):
         }
         try:
             result['entities'] = [self.span_processor(s) for s in info.ents]
-        except:
+        except Exception as e:
             if debug:
+                print(e)
                 pdb.post_mortem()
         try:
-            result['sentences'] = [SpacyProcessor.process_span_sent(s) for s in info.sents]
-        except:
+            result['sentences'] = [
+                SpacyProcessor.process_span_sent(s) for s in info.sents]
+        except Exception as e:
             if debug:
+                print(e)
                 pdb.post_mortem()
         try:
-            result['noun_chunks'] = [self.span_processor(s) for s in info.noun_chunks]
-        except:
+            result['noun_chunks'] = [
+                self.span_processor(s) for s in info.noun_chunks]
+        except Exception as e:
             if debug:
+                print(e)
                 pdb.post_mortem()
         return result
