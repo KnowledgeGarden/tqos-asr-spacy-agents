@@ -22,6 +22,8 @@ for p in (parser_populate, parser_pop_analysis, parser_daemon):
 parser_daemon.add_argument('--source_topic', '-s', type=str,
                         default='paragraphs',
                         help='kafka topic from where to read paragraphs')
+parser_daemon.add_argument('--reset', '-r', action='store_true',
+                        help='Read source topic from start')
 parser_daemon.add_argument('--hypothesis', action='store_true',
                            help="analyze kafka message as hypothesis json")
 parser_populate.add_argument('--dest_topic', '-t', type=str,
@@ -58,7 +60,7 @@ if args.action == 'daemon':
         from .kafka_handlers import HypothesisProcessor as Processor
     else:
         from .kafka_handlers import KafkaProcessor as Processor
-    proc = Processor(processor, args.source_topic, args.dest_topic, args.zookeeper, args.kafka, args.compression)
+    proc = Processor(processor, args.source_topic, args.dest_topic, args.zookeeper, args.kafka, args.compression, args.reset)
     proc.run()
     exit(0)
 else:

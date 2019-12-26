@@ -52,14 +52,16 @@ class KafkaAnalysisWriter(KafkaParaWriter):
 
 
 class KafkaProcessor(KafkaAnalysisWriter):
-    def __init__(self, processor, source_topic, dest_topic, zookeeper=None, kafka=None, compression=None):
+    def __init__(self, processor, source_topic, dest_topic, zookeeper=None,
+            kafka=None, compression=None, reset=False):
         super(KafkaProcessor, self).__init__(processor, dest_topic, zookeeper, kafka, compression)
         source_topic = self.client.topics[source_topic]
         self.doc_info = {}
         self.consumer = source_topic.get_simple_consumer(
             "spacy_"+processor.model_name,
             auto_commit_enable=True,
-            auto_commit_interval_ms=5000)
+            auto_commit_interval_ms=5000,
+            reset_offset_on_start=reset)
 
     def make_producer(self, topic, compression):
         return topic.get_producer(compression=compression)
