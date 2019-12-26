@@ -5,3 +5,5 @@ broker = kafka://localhost:9092
 models = core_sci_lg, ner_bionlp13cg_md
 store = rocksdb://
 aggregate_table = spacy_join_t
+source_topic_partitions = 1
+dest_topic_partitions = 1

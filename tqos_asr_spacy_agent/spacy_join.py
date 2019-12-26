@@ -13,10 +13,13 @@ app = faust.App(
     store=params['store'],
     value_serializer='json',
 )
-source_topic = app.topic(params['source_topic'])
-dest_topic = app.topic(params['dest_topic'])
+source_topic = app.topic(params['source_topic'],
+    partitions = int(params['source_topic_partitions']))
+dest_topic = app.topic(params['dest_topic'],
+    partitions = int(params['dest_topic_partitions']))
 
-table = app.Table(params['aggregate_table'], default=dict)
+table = app.Table(params['aggregate_table'], default=dict,
+    partitions=int(params['source_topic_partitions']))
 
 def analysis_id(model):
     return "_".join((model["para_info"]["doc_id"], model["para_info"]["para_id"]))
@@ -25,7 +28,7 @@ def analysis_id(model):
 @app.agent(source_topic)
 async def join(values):
     "Collect values until all models are supplied"
-    async for value in values.group_by(analysis_id, name='_key'):
+    async for value in values:
         id = analysis_id(value)
         model = value["analyzer"]["name"]
         aggregate = table[id]
