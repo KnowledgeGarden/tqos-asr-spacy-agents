@@ -10,8 +10,15 @@ class FileReader(object):
     def __init__(self, writer):
         self.writer = writer
 
+    async def __aenter__(self):
+        await self.writer.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.writer.__aexit__(exc_type, exc, tb)
+
     async def process(self, fname, **doc_info):
-        self.writer.start(doc_info, fname)
+        self.writer.setup(doc_info, fname)
         with open(fname) as f:
             content = f.read()
             prefix, content0 = content.split('\n\n', 1)
@@ -29,15 +36,14 @@ class FileReader(object):
                 }
                 await self.writer.process_para(para_text.strip(), para_info)
             pos += len(para_text) + 1
-        self.writer.end()
 
 
 class FileWriter(Writer):
     def __init__(self, processor):
         self.processor = processor
 
-    def start(self, doc_info, fname):
-        super(FileWriter, self).start(doc_info, fname)
+    def setup(self, doc_info, fname):
+        super(FileWriter, self).setup(doc_info, fname)
         self.analysis = []
 
     async def process_para(self, para_text, para_info):

@@ -20,12 +20,10 @@ parser_daemon.set_defaults(action='daemon')
 
 for p in (parser_populate, parser_pop_analysis, parser_daemon):
     p.add_argument('--compression', '-c', type=str,
-                   default='NONE',
-                   help='compression method (GZIP, SNAPPY, LZ4, NONE)')
+                   default=None,
+                   help='compression method (gzip, snappy, lz4)')
     p.add_argument('--kafka', '-k', type=str,
                    help='kafka host address and port')
-    p.add_argument('--zookeeper', '-z', type=str,
-                   help='zookeeper host address and port')
 
 parser_daemon.add_argument('--source_topic', '-s', type=str,
                            default='paragraphs',
@@ -61,17 +59,16 @@ if args.action != 'populate':
     from .spacy_proc import SpacyProcessor
     processor = SpacyProcessor(args.model_name)
 if args.action != 'process':
-    if not (args.kafka or args.zookeeper):
+    if not args.kafka:
         args.kafka = '127.0.0.1:9092'
-        args.zookeeper = '127.0.0.1:2181'
 if args.action == 'daemon':
     if args.hypothesis:
         from .kafka_handlers import HypothesisProcessor as Processor
     else:
         from .kafka_handlers import KafkaProcessor as Processor
     proc = Processor(
-        processor, args.source_topic, args.dest_topic, args.zookeeper,
-        args.kafka, args.compression, args.reset)
+            processor, args.source_topic, args.dest_topic, loop,
+            args.kafka, args.compression, args.reset)
     loop.run_until_complete(proc.run())
 else:
     if len(args.files) > 1 and (args.doc_id or args.doc_url):
@@ -83,17 +80,17 @@ else:
     elif args.action == 'populate':
         from .kafka_handlers import KafkaParaWriter
         writer = KafkaParaWriter(
-            args.dest_topic, args.zookeeper, args.kafka, args.compression)
+            args.dest_topic, loop, args.kafka, args.compression)
     elif args.action == 'pop_analysis':
         from .kafka_handlers import KafkaAnalysisWriter
         writer = KafkaAnalysisWriter(
-            processor, args.dest_topic, args.zookeeper, args.kafka,
+            processor, args.dest_topic, loop, args.kafka,
             args.compression)
 
     async def process_all():
         from .file_handlers import FileReader
-        reader = FileReader(writer)
-        for fname in args.files:
-            await reader.process(
-                fname, doc_url=args.doc_url, doc_id=args.doc_id or fname)
+        async with FileReader(writer) as reader:
+            for fname in args.files:
+                await reader.process(
+                    fname, doc_url=args.doc_url, doc_id=args.doc_id or fname)
     loop.run_until_complete(process_all())

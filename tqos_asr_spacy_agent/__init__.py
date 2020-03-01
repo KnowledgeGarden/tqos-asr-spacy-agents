@@ -1,10 +1,13 @@
 
 class Writer(object):
-    def start(self, doc_info, fname):
+    def setup(self, doc_info, fname):
         self.doc_info = doc_info
         self.fname = fname
 
-    def end(self):
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
         pass
 
     async def process_para(self, sentence, para_info):

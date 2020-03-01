@@ -1,23 +1,23 @@
+import asyncio
 import simplejson as json
-from pykafka import KafkaClient
-from pykafka.common import CompressionType
+from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
 from . import Writer
 
 
 class KafkaParaWriter(Writer):
-    def __init__(self, dest_topic, zookeeper=None, kafka=None,
-                 compression='NONE'):
-        self.client = KafkaClient(zookeeper_hosts=zookeeper, hosts=kafka)
-        dest_topic = self.client.topics[dest_topic]
-        compression = getattr(CompressionType, compression)
-        self.producer = self.make_producer(dest_topic, compression)
+    def __init__(self, dest_topic, loop, kafka=None, compression=None):
+        self.producer = AIOKafkaProducer(
+            bootstrap_servers=kafka, loop=loop, compression_type=compression)
+        self.dest_topic = dest_topic
 
-    def make_producer(self, topic, compression):
-        return topic.get_sync_producer(compression=compression)
+    async def __aenter__(self):
+        await self.producer.start()
+        return await super(KafkaParaWriter, self).__aenter__()
 
-    def end(self):
-        self.producer.stop()
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.producer.stop()
+        await super(KafkaParaWriter, self).__aexit__(exc_type, exc, tb)
 
     async def process_para(self, para_text, para_info):
         # maybe try with async?
@@ -26,20 +26,23 @@ class KafkaParaWriter(Writer):
             "para_info": para_info,
             "text": para_text
         }
-        self.write(data, self.get_key(para_info))
+        await self.write(data, self.get_key(para_info))
 
     def get_key(self, para_info):
         return "%s_%s" % (para_info['doc_id'], str(para_info['para_id']))
 
-    def write(self, data, key):
-        self.producer.produce(json.dumps(data).encode('utf-8'), key.encode('ascii'))
+    async def write(self, data, key):
+        await self.producer.send_and_wait(
+            self.dest_topic,
+            json.dumps(data).encode('utf-8'),
+            key=key.encode('ascii'))
 
 
 class KafkaAnalysisWriter(KafkaParaWriter):
-    def __init__(self, processor, dest_topic, zookeeper=None, kafka=None,
-                 compression='NONE'):
+    def __init__(self, processor, dest_topic, loop, kafka=None,
+                 compression=None):
         super(KafkaAnalysisWriter, self).__init__(
-            dest_topic, zookeeper, kafka, compression)
+            dest_topic, loop, kafka, compression)
         self.processor = processor
 
     def get_key(self, para_info):
@@ -51,36 +54,38 @@ class KafkaAnalysisWriter(KafkaParaWriter):
         data = self.processor.process_para(para_text)
         para_info.update(self.doc_info)
         data['para_info'] = para_info
-        self.write(data, self.get_key(para_info))
+        await self.write(data, self.get_key(para_info))
 
 
 class KafkaProcessor(KafkaAnalysisWriter):
-    def __init__(self, processor, source_topic, dest_topic, zookeeper=None,
+    def __init__(self, processor, source_topic, dest_topic, loop,
                  kafka=None, compression=None, reset=False):
         super(KafkaProcessor, self).__init__(
-            processor, dest_topic, zookeeper, kafka, compression)
-        source_topic = self.client.topics[source_topic]
+            processor, dest_topic, loop, kafka, compression)
         self.doc_info = {}
-        self.consumer = source_topic.get_simple_consumer(
-            "spacy_"+processor.model_name,
-            auto_commit_enable=True,
-            auto_commit_interval_ms=5000,
-            reset_offset_on_start=reset)
+        self.reset = reset
+        self.consumer = AIOKafkaConsumer(
+            source_topic,
+            loop=loop, bootstrap_servers=kafka,
+            auto_offset_reset='earliest' if reset else 'latest',
+            group_id="spacy_"+processor.model_name)
 
-    def make_producer(self, topic, compression):
-        return topic.get_producer(compression=compression)
+    async def __aenter__(self):
+        await self.consumer.start()
+        if self.reset:
+            await self.consumer.seek_to_beginning()
+        return await super(KafkaProcessor, self).__aenter__()
 
-    def end(self):
-        super(KafkaProcessor, self).end()
-        self.consumer.stop()
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.consumer.stop()
+        await super(KafkaProcessor, self).__aexit__(exc_type, exc, tb)
 
     async def run(self):
-        self.producer.start()
-        self.consumer.start()
-        for msg in self.consumer:
-            print(msg)
-            data = json.loads(msg.value.decode('utf-8'))
-            await self.process(data)
+        async with self as proc:
+            async for msg in proc.consumer:
+                print(msg)
+                data = json.loads(msg.value.decode('utf-8'))
+                await proc.process(data)
 
     async def process(self, data):
         para_info, para_text = data['para_info'], data['text']
