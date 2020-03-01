@@ -1,6 +1,8 @@
 import argparse
+import asyncio
+
 parser = argparse.ArgumentParser(
-    description='Read text from a kafak topic or files; '
+    description='Read text from a kafka topic or files; '
     'output analysis to files or kafka topic')
 subparsers = parser.add_subparsers(help='sub-command help')
 parser_populate = subparsers.add_parser(
@@ -53,6 +55,7 @@ for p in (parser_populate, parser_pop_analysis, parser_process):
     p.add_argument('files', nargs='+', help='input file names')
 
 
+loop = asyncio.get_event_loop()
 args = parser.parse_args()
 if args.action != 'populate':
     from .spacy_proc import SpacyProcessor
@@ -69,8 +72,7 @@ if args.action == 'daemon':
     proc = Processor(
         processor, args.source_topic, args.dest_topic, args.zookeeper,
         args.kafka, args.compression, args.reset)
-    proc.run()
-    exit(0)
+    loop.run_until_complete(proc.run())
 else:
     if len(args.files) > 1 and (args.doc_id or args.doc_url):
         print("Do not specify doc id or url with more than one document")
@@ -87,8 +89,11 @@ else:
         writer = KafkaAnalysisWriter(
             processor, args.dest_topic, args.zookeeper, args.kafka,
             args.compression)
-    from .file_handlers import FileReader
-    reader = FileReader(writer)
-    for fname in args.files:
-        reader.process(
-            fname, doc_url=args.doc_url, doc_id=args.doc_id or fname)
+
+    async def process_all():
+        from .file_handlers import FileReader
+        reader = FileReader(writer)
+        for fname in args.files:
+            await reader.process(
+                fname, doc_url=args.doc_url, doc_id=args.doc_id or fname)
+    loop.run_until_complete(process_all())

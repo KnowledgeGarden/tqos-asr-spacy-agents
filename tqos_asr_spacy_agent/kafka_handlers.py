@@ -19,7 +19,7 @@ class KafkaParaWriter(Writer):
     def end(self):
         self.producer.stop()
 
-    def process_para(self, para_text, para_info):
+    async def process_para(self, para_text, para_info):
         # maybe try with async?
         para_info.update(self.doc_info)
         data = {
@@ -47,7 +47,7 @@ class KafkaAnalysisWriter(KafkaParaWriter):
             (super(KafkaAnalysisWriter, self).get_key(para_info),
              self.processor.model_name))
 
-    def process_para(self, para_text, para_info):
+    async def process_para(self, para_text, para_info):
         data = self.processor.process_para(para_text)
         para_info.update(self.doc_info)
         data['para_info'] = para_info
@@ -74,24 +74,24 @@ class KafkaProcessor(KafkaAnalysisWriter):
         super(KafkaProcessor, self).end()
         self.consumer.stop()
 
-    def run(self):
+    async def run(self):
         self.producer.start()
         self.consumer.start()
         for msg in self.consumer:
             print(msg)
             data = json.loads(msg.value.decode('utf-8'))
-            self.process(data)
+            await self.process(data)
 
-    def process(self, data):
+    async def process(self, data):
         para_info, para_text = data['para_info'], data['text']
-        self.process_para(para_text, para_info)
+        await self.process_para(para_text, para_info)
 
 
 class HypothesisProcessor(KafkaProcessor):
-    def process(self, data):
+    async def process(self, data):
         id = data['id']
         for k in ('annotation', "text"):
             para = data.get(k, None)
             if para:
-                self.process_para(para, {
+                await self.process_para(para, {
                     "doc_id": "hyp_" + id, "para_id": k, "hyp": data})

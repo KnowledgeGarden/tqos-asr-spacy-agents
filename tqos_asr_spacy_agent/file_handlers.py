@@ -10,7 +10,7 @@ class FileReader(object):
     def __init__(self, writer):
         self.writer = writer
 
-    def process(self, fname, **doc_info):
+    async def process(self, fname, **doc_info):
         self.writer.start(doc_info, fname)
         with open(fname) as f:
             content = f.read()
@@ -27,7 +27,7 @@ class FileReader(object):
                     'para_id': num,
                     'para_offset': pos
                 }
-                self.writer.process_para(para_text.strip(), para_info)
+                await self.writer.process_para(para_text.strip(), para_info)
             pos += len(para_text) + 1
         self.writer.end()
 
@@ -40,7 +40,7 @@ class FileWriter(Writer):
         super(FileWriter, self).start(doc_info, fname)
         self.analysis = []
 
-    def process_para(self, para_text, para_info):
+    async def process_para(self, para_text, para_info):
         data = self.processor.process_para(para_text)
         data['para_info'] = para_info
         self.analysis.append(data)
