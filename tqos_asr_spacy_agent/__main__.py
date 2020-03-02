@@ -26,14 +26,14 @@ for p in (parser_populate, parser_pop_analysis, parser_daemon):
                    help='kafka host address and port')
 
 parser_daemon.add_argument('--source_topic', '-s', type=str,
-                           default='paragraphs',
+                           default='paragraph',
                            help='kafka topic from where to read paragraphs')
 parser_daemon.add_argument('--reset', '-r', action='store_true',
                            help='Read source topic from start')
 parser_daemon.add_argument('--hypothesis', action='store_true',
                            help="analyze kafka message as hypothesis json")
 parser_populate.add_argument('--dest_topic', '-t', type=str,
-                             default='paragraphs',
+                             default='paragraph',
                              help='kafka topic from where to write paragraphs')
 for p in (parser_pop_analysis, parser_daemon):
     p.add_argument('--dest_topic', '-t', type=str,
